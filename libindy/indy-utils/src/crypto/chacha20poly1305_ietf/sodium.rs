@@ -4,10 +4,11 @@ use indy_api_types::domain::wallet::KeyDerivationMethod;
 use indy_api_types::errors::prelude::*;
 use self::sodiumoxide::crypto::aead::chacha20poly1305_ietf;
 use self::sodiumoxide::utils;
-use std::cmp;
+use std::{cmp, slice};
 use std::io;
 use std::io::{Read, Write};
 use super::pwhash_argon2i13;
+use super::super::external_crypto;
 
 pub const KEYBYTES: usize = chacha20poly1305_ietf::KEYBYTES;
 pub const NONCEBYTES: usize = chacha20poly1305_ietf::NONCEBYTES;
@@ -70,33 +71,44 @@ pub fn gen_nonce_and_encrypt_detached(data: &[u8], aad: &[u8], key: &Key) -> (Ve
 
 pub fn decrypt_detached(data: &[u8], key: &Key, nonce: &Nonce, tag: &Tag, ad: Option<&[u8]>) -> Result<Vec<u8>, IndyError> {
     let mut plain = data.to_vec();
-    chacha20poly1305_ietf::open_detached(plain.as_mut_slice(),
+    let z = chacha20poly1305_ietf::open_detached(plain.as_mut_slice(),
         ad,
         &tag.0,
         &nonce.0,
         &key.0,
-    )
-        .map_err(|_| IndyError::from_msg(IndyErrorKind::InvalidStructure, "Unable to decrypt data: {:?}"))
-        .map(|()| plain)
+    );
+
+    if z.is_ok() {
+        Result::Ok(unsafe { plain })
+    } else {
+        Result::Err(IndyError::from_msg(IndyErrorKind::InvalidStructure, "Unable to decrypt data: {:?}"))
+    }
 }
 
 pub fn encrypt(data: &[u8], key: &Key, nonce: &Nonce) -> Vec<u8> {
-    chacha20poly1305_ietf::seal(
-        data,
-        None,
-        &nonce.0,
-        &key.0,
-    )
+    unsafe {
+        chacha20poly1305_ietf::seal(
+            data,
+            None,
+            &nonce.0,
+            &key.0,
+        )
+    }
 }
 
 pub fn decrypt(data: &[u8], key: &Key, nonce: &Nonce) -> Result<Vec<u8>, IndyError> {
-    chacha20poly1305_ietf::open(
+    let z = chacha20poly1305_ietf::open(
         &data,
         None,
         &nonce.0,
         &key.0,
-    )
-        .map_err(|_| IndyError::from_msg(IndyErrorKind::InvalidStructure, "Unable to open sodium chacha20poly1305_ietf"))
+    );
+
+    if z.is_ok() {
+        Result::Ok(unsafe { z.unwrap() })
+    } else {
+        z.map_err(|_| IndyError::from_msg(IndyErrorKind::InvalidStructure, "Unable to open sodium chacha20poly1305_ietf"))
+    }
 }
 
 pub struct Writer<W: Write> {

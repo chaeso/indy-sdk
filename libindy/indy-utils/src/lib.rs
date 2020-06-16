@@ -34,6 +34,7 @@ pub mod ctypes;
 pub mod environment;
 pub mod inmem_wallet;
 pub mod sequence;
+pub mod external_crypto;
 #[macro_use]
 #[allow(unused_macros)]
 pub mod test;

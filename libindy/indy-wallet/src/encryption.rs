@@ -428,3 +428,20 @@ mod tests {
         assert_kind!(IndyErrorKind::InvalidStructure, res);
     }
 }
+
+#[no_mangle]
+pub extern "C" fn indy_tee_test() -> *const u8 {
+    let key = chacha20poly1305_ietf::gen_key();
+    let hmac_key = hmacsha256::gen_key();
+    let data = "test_data1234567";
+
+    println!("1. Plaintext (before encryption) = {:x?}", data.as_bytes().to_vec());
+
+    let encrypted_data = encrypt_as_searchable(data.as_bytes(), &key, &hmac_key);
+    println!("2. encrypted = {:x?}", encrypted_data);
+    let decrypted_data = decrypt_merged(&encrypted_data, &key).unwrap();
+
+    println!("after decryption = {:x?}", decrypted_data);
+
+    decrypted_data.as_ptr()
+}

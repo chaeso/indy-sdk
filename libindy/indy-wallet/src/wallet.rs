@@ -14,6 +14,8 @@ use super::encryption::*;
 use super::query_encryption::encrypt_query;
 use super::WalletRecord;
 
+use indy_utils::external_crypto;
+
 #[derive(Serialize, Deserialize)]
 pub(super) struct Keys {
     pub type_key: chacha20poly1305_ietf::Key,
@@ -27,6 +29,8 @@ pub(super) struct Keys {
 
 impl Keys {
     pub fn new() -> Keys {
+        unsafe { external_crypto::ExternalCrypto::indy_create_key(); }
+
         Keys {
             type_key: chacha20poly1305_ietf::gen_key(),
             name_key: chacha20poly1305_ietf::gen_key(),
@@ -42,7 +46,16 @@ impl Keys {
         let mut serialized = rmp_serde::to_vec(self)
             .to_indy(IndyErrorKind::InvalidState, "Unable to serialize keys")?;
 
-        let encrypted = encrypt_as_not_searchable(&serialized, master_key);
+        // println!("[Rust/Enc/IN] len={} plaintext = {:?}", serialized.len(), serialized);
+
+        // TODO : 만약 외부에서 주입한 Encryption 함수 (e.g., iOS SecureEnclave)가 존재 한다면 그것으로 암호화 한다.
+        let serialized2 = unsafe {external_crypto::ExternalCrypto::indy_encrypt_tee(&serialized)};
+
+        // println!("[Rust/Enc/TEE-applied] len={} tee-applied-text = {:?}", serialized2.len(), serialized2);
+
+        let encrypted = encrypt_as_not_searchable(&serialized2, master_key);
+
+        // println!("[Rust/Enc/OUT] len={} ciphertext= {:?}", encrypted.len(), encrypted);
 
         serialized.zeroize();
         Ok(encrypted)
@@ -51,10 +64,17 @@ impl Keys {
     pub fn deserialize_encrypted(bytes: &[u8], master_key: &chacha20poly1305_ietf::Key) -> IndyResult<Keys> {
         let mut decrypted = decrypt_merged(bytes, master_key)?;
 
-        let keys: Keys = rmp_serde::from_slice(&decrypted)
-            .to_indy(IndyErrorKind::InvalidState, "Invalid bytes for Key")?;
+        println!("[Dec/IN] len={}, ciphertext= {:?}", bytes.len(), decrypted);
 
-        decrypted.zeroize();
+        // TODO : 만약 외부에서 주입한 Decryption 함수 (e.g., iOS SecureEnclave)가 존재 한다면 그것으로 복호화 한다.
+        let mut decrypted2 = unsafe { external_crypto::ExternalCrypto::indy_decrypt_tee(decrypted) };
+
+        println!("[Dec/OUT] len={}, decrypted2= {:?}", decrypted2.len(), decrypted2);
+
+        let keys: Keys = rmp_serde::from_slice(&decrypted2)
+            .to_indy(IndyErrorKind::InvalidState, "Invalid bytes for Key")?;
+        decrypted2.zeroize();
+
         Ok(keys)
     }
 }

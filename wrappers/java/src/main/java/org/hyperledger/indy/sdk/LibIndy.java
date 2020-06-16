@@ -42,6 +42,8 @@ public abstract class LibIndy {
 		public int indy_import_wallet(int command_handle, String config, String credentials, String importConfigJson, Callback cb);
 		public int indy_generate_wallet_key(int command_handle, String config, Callback cb);
 
+		public int indy_register_tee_method(Callback key_gen, Callback enc, Callback dec);
+
 		// ledger.rs
 
 		public int indy_sign_and_submit_request(int command_handle, int pool_handle, int wallet_handle, String submitter_did, String request_json, Callback cb);

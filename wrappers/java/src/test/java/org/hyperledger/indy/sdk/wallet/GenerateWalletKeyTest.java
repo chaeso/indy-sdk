@@ -17,6 +17,11 @@ public class GenerateWalletKeyTest extends IndyIntegrationTest {
 	}
 
 	@Test
+	public void testRegistrationTeeMethod() throws Exception {
+		Wallet.registerTeeMethod();
+	}
+
+	@Test
 	public void testGenerateWalletKeyWorksForSeed() throws Exception {
 		String config = "{ \"seed\":\"" + MY1_SEED + "\"}";
 		String key = Wallet.generateWalletKey(config).get();
