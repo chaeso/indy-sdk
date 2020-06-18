@@ -56,40 +56,6 @@ public class Wallet extends IndyJava.API implements AutoCloseable {
 		}
 	};
 
-	private static Callback keyGenCb = new Callback() {
-
-		@SuppressWarnings({ "unused", "unchecked" })
-		public void callback() {
-			System.out.println("------------ key gen callback called");
-		}
-	};
-
-	private static Callback encryptCb = new Callback() {
-
-		@SuppressWarnings({ "unused", "unchecked" })
-		public void callback(int xcommand_handle, String msg, int l, IntByReference resultLen) {
-			System.out.println("------------ encryptCb callback called");
-			resultLen.setValue(3);
-
-			CompletableFuture<String> future = (CompletableFuture<String>) removeFuture(xcommand_handle);
-			String result = "str";
-			future.complete(result);
-		}
-	};
-
-	private static Callback decryptCb = new Callback() {
-
-		@SuppressWarnings({ "unused", "unchecked" })
-		public void callback(int xcommand_handle, String msg, int l, IntByReference resultLen) {
-			System.out.println("------------ decryptCb callback called");
-			resultLen.setValue(3);
-
-			CompletableFuture<String> future = (CompletableFuture<String>) removeFuture(xcommand_handle);
-			String result = "str";
-			future.complete(result);
-		}
-	};
-
 	/**
 	 * Callback used when function returning string completes.
 	 */
@@ -128,16 +94,13 @@ public class Wallet extends IndyJava.API implements AutoCloseable {
 	 * STATIC METHODS
 	 */
 
-	public static CompletableFuture<Void> registerTeeMethod() throws IndyException {
+	public static CompletableFuture<Void> registerTeeMethod(Callback keyGenCb, Callback encryptCb, Callback decryptCb) throws IndyException {
 		CompletableFuture<Void> future = new CompletableFuture<Void>();
-		//int commandHandle = addFuture(future);
 
-		int result = LibIndy.api.indy_register_tee_method(
+		LibIndy.api.indy_register_tee_method(
 				keyGenCb,
 				encryptCb,
 				decryptCb);
-
-		checkResult(future, result);
 
 		return future;
 	}
