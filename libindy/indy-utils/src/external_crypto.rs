@@ -26,12 +26,14 @@ impl ExternalCrypto {
     #[no_mangle]
     pub extern "C" fn indy_register_tee_method(key_gen: extern "C" fn() -> (),
                                                enc: extern "C" fn(xcommand_handle: CommandHandle, t: *const u8, l: u32, resultLen: *mut u32) -> *const u8,
-                                               dec: extern "C" fn(xcommand_handle: CommandHandle, t: *const u8, l: u32, resultLen: *mut u32) -> *const u8) {
+                                               dec: extern "C" fn(xcommand_handle: CommandHandle, t: *const u8, l: u32, resultLen: *mut u32) -> *const u8) -> ErrorCode {
         unsafe {
             key_gen_tee = Some(key_gen);
             encrypt_tee = Some(enc);
             decrypt_tee = Some(dec);
         }
+
+        ErrorCode::Success
     }
 
     pub unsafe fn indy_encrypt_tee(msg: &Vec<u8>) -> &[u8] {

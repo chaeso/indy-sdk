@@ -418,7 +418,7 @@ extern "C" {
                                                                          const char *const key)
                                                 );
 
-    extern void indy_register_tee_method(void *(*key_gen)(),
+    extern indy_error_t indy_register_tee_method(void *(*key_gen)(),
                                          const unsigned char *(*enc)(indy_handle_t command_handle, const unsigned char *msg, const unsigned int l, unsigned int *resultLen),
                                          const unsigned char *(*dec)(indy_handle_t command_handle, const unsigned char *msg, const unsigned int l, unsigned int *resultLen));
 #ifdef __cplusplus
